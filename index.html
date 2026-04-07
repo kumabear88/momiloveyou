@@ -157,7 +157,8 @@
                     <p class="text-xs text-gray-400">支援照片、圖畫或四格漫畫</p>
                   </div>
                   <img id="image-preview" src="" alt="Preview" class="hidden w-full h-full object-contain p-2" />
-                  <input id="input-image" type="file" accept="image/*" class="hidden" />
+                  <!-- 針對手機版優化 accept 屬性，確保能正確喚起相簿與相機 -->
+                  <input id="input-image" type="file" accept="image/jpeg, image/png, image/gif, image/*" class="hidden" />
                 </label>
               </div>
               <div id="remove-image-btn" class="text-right mt-2 hidden">
@@ -643,11 +644,12 @@
 
       } catch (error) {
         console.error("Error submitting entry:", error);
-        errorMsgText.textContent = '上傳失敗，請再試一次。';
+        // 將真正的錯誤訊息顯示在畫面上，方便手機版除錯
+        errorMsgText.textContent = `上傳失敗：${error.message || '未知錯誤'}`;
         errorMsgBox.classList.remove('hidden'); errorMsgBox.classList.add('flex');
         isSubmitting = false;
         validateForm();
-        document.getElementById('submit-text').textContent = '繳交日記';
+        document.getElementById('submit-text').textContent = '重新繳交';
       }
     });
 
@@ -700,7 +702,8 @@
           }
         }, (error) => {
           console.error("Error fetching entries:", error);
-          showToast("讀取資料失敗，請重新整理頁面", "error");
+          // 在畫面上顯示真正的讀取錯誤原因
+          showToast(`讀取失敗：${error.message}`, "error");
         });
       }
     });
