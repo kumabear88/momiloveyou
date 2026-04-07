@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>媽媽行為觀察日記</title>
+  
+  <!-- 引入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- 引入 Lucide 圖示庫 -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* 自訂動畫 */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translate(-50%, -10px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+    .animate-fade-in-down {
+      animation: fadeInDown 0.3s ease-out forwards;
+    }
+    /* 隱藏捲軸但可捲動 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-pink-50 text-gray-800 font-sans min-h-screen relative pb-10">
+
+  <!-- 載入中畫面 -->
+  <div id="loading-screen" class="min-h-screen bg-pink-50 flex items-center justify-center font-sans">
+    <div class="animate-pulse text-pink-500 font-bold text-xl flex items-center">
+      <i data-lucide="heart" class="mr-2 animate-bounce fill-current"></i> 載入中，請稍候...
+    </div>
+  </div>
+
+  <!-- 主要應用程式容器 (初始隱藏) -->
+  <div id="app-container" class="hidden">
+    
+    <!-- 浮動提示訊息 (Toast) -->
+    <div id="toast-container" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 hidden">
+      <div id="toast-content" class="px-6 py-3 rounded-full shadow-lg font-bold text-sm flex items-center bg-gray-800 text-white transition-all">
+        <i id="toast-icon" data-lucide="info" class="mr-2 w-4 h-4"></i>
+        <span id="toast-message">提示訊息</span>
+      </div>
+    </div>
+
+    <!-- 標題列 -->
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+      <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-center relative">
+        <button id="back-btn" class="hidden absolute left-4 p-2 text-pink-500 hover:bg-pink-50 rounded-full transition-colors">
+          <i data-lucide="chevron-left"></i>
+        </button>
+        <h1 class="text-2xl font-bold text-pink-600 flex items-center">
+          <i data-lucide="heart" class="mr-2 text-red-400 fill-current"></i>
+          媽媽行為觀察日記
+        </h1>
+      </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="max-w-4xl mx-auto px-4 py-6">
+      
+      <!-- ================= 視圖：首頁 ================= -->
+      <div id="view-home" class="space-y-8 animate-fade-in">
+        <!-- 歡迎橫幅 -->
+        <div class="bg-white rounded-3xl p-8 shadow-sm text-center border-4 border-pink-100 relative overflow-hidden">
+          <div class="absolute top-0 right-0 p-4 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+             <i data-lucide="heart" style="width: 120px; height: 120px;"></i>
+          </div>
+          <h2 class="text-3xl font-bold text-gray-800 mb-4 relative z-10">慶祝母親節 🌸</h2>
+          <p class="text-lg text-gray-600 mb-8 max-w-xl mx-auto leading-relaxed relative z-10">
+            平常媽媽都在做些什麼呢？是辛苦做家事、開心追劇，還是生氣碎碎念？
+            <br/>快用 30~50 字寫下你的觀察，也可以附上照片或四格漫畫喔！
+            <br/><span class="text-red-500 font-bold inline-block mt-3 bg-red-50 px-4 py-1.5 rounded-full text-sm">⏳ 徵稿日期至 2026.04.25 截止</span>
+          </p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto relative z-10">
+            <button id="btn-go-upload" class="flex flex-col items-center justify-center p-6 rounded-2xl transition-transform shadow-md group bg-pink-500 hover:bg-pink-600 text-white hover:scale-105">
+              <i id="upload-icon-home" data-lucide="upload" class="mb-3 w-12 h-12 group-hover:-translate-y-1 transition-transform"></i>
+              <span id="upload-title-home" class="text-2xl font-bold">上傳作品</span>
+              <span id="upload-desc-home" class="text-pink-200 mt-1">分享你的觀察日記</span>
+            </button>
+            
+            <button id="btn-go-gallery" class="flex flex-col items-center justify-center p-6 bg-blue-400 hover:bg-blue-500 text-white rounded-2xl transition-transform hover:scale-105 shadow-md group">
+              <i data-lucide="image" class="mb-3 w-12 h-12 group-hover:-translate-y-1 transition-transform"></i>
+              <span class="text-2xl font-bold">欣賞作品</span>
+              <span class="text-blue-100 mt-1">看看同學們寫了什麼</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 排行榜區塊 -->
+        <div id="top-three-container" class="bg-white rounded-3xl p-6 shadow-sm border border-pink-100 hidden">
+          <div class="flex items-center justify-center mb-6">
+            <i data-lucide="award" class="text-yellow-500 mr-2 w-7 h-7"></i>
+            <h3 class="text-2xl font-bold text-gray-800">人氣排行榜 Top 3</h3>
+          </div>
+          <div id="top-three-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- JavaScript 注入排行榜內容 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 視圖：上傳 ================= -->
+      <div id="view-upload" class="hidden animate-fade-in max-w-2xl mx-auto">
+        <!-- 正常上傳表單 -->
+        <div id="upload-form-container" class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-pink-100">
+          <h2 class="text-2xl font-bold text-center text-gray-800 mb-6 flex items-center justify-center">
+            <i data-lucide="pen-line" class="mr-2 text-pink-500"></i>
+            新增觀察日記
+          </h2>
+
+          <div id="upload-error" class="mb-6 p-3 bg-red-50 text-red-600 rounded-lg items-center text-sm font-medium hidden">
+            <i data-lucide="alert-circle" class="mr-2 flex-shrink-0 w-4 h-4"></i>
+            <span id="upload-error-text"></span>
+          </div>
+
+          <form id="upload-form" class="space-y-6">
+            <!-- 姓名輸入 -->
+            <div>
+              <label class="block text-gray-700 font-bold mb-2">我是誰 (姓名/暱稱)</label>
+              <input type="text" id="input-author" placeholder="例如：三年一班 王小明" maxlength="20" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 outline-none transition-all bg-gray-50 focus:bg-white" />
+            </div>
+
+            <!-- 內容輸入 -->
+            <div>
+              <div class="flex justify-between items-end mb-2">
+                <label class="block text-gray-700 font-bold">觀察內容</label>
+                <span id="word-count-badge" class="text-sm font-medium px-2.5 py-1 rounded-full transition-colors text-gray-500 bg-gray-100">
+                  0 / 50 字 (需介於30-50字)
+                </span>
+              </div>
+              <textarea id="input-content" placeholder="媽媽今天做了什麼事情讓你印象深刻呢？快記錄下來吧！" class="w-full px-4 py-3 rounded-xl border outline-none transition-all h-32 resize-none bg-gray-50 focus:bg-white border-gray-200 focus:border-pink-400 focus:ring-pink-200"></textarea>
+            </div>
+
+            <!-- 圖片上傳 -->
+            <div>
+              <label class="block text-gray-700 font-bold mb-2">附上照片或四格漫畫 (選填)</label>
+              <div class="mt-2 flex items-center justify-center w-full">
+                <label for="input-image" class="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-pink-50 hover:border-pink-300 transition-colors relative overflow-hidden group">
+                  <div id="image-placeholder" class="flex flex-col items-center justify-center pt-5 pb-6">
+                    <i data-lucide="camera" class="w-10 h-10 mb-3 text-gray-400 group-hover:text-pink-400 transition-colors"></i>
+                    <p class="mb-2 text-sm text-gray-500"><span class="font-semibold text-pink-600">點擊上傳</span> 或拖曳圖片至此</p>
+                    <p class="text-xs text-gray-400">支援照片、圖畫或四格漫畫</p>
+                  </div>
+                  <img id="image-preview" src="" alt="Preview" class="hidden w-full h-full object-contain p-2" />
+                  <input id="input-image" type="file" accept="image/*" class="hidden" />
+                </label>
+              </div>
+              <div id="remove-image-btn" class="text-right mt-2 hidden">
+                <button type="button" class="text-sm text-red-500 hover:text-red-700 font-medium">移除圖片</button>
+              </div>
+            </div>
+
+            <!-- 提交按鈕 -->
+            <button id="btn-submit" type="submit" disabled class="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg shadow-md transition-all flex items-center justify-center hover:shadow-lg transform hover:-translate-y-0.5 disabled:transform-none disabled:shadow-none">
+              <i data-lucide="send" class="mr-2 w-5 h-5"></i> 
+              <span id="submit-text">繳交日記</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- 截止畫面 (隱藏) -->
+        <div id="deadline-container" class="hidden text-center py-16 bg-white rounded-3xl shadow-sm border border-gray-100">
+          <div class="text-gray-400 mb-4 flex justify-center"><i data-lucide="alert-circle" class="w-16 h-16"></i></div>
+          <h2 class="text-2xl font-bold text-gray-800 mb-2">徵稿已截止</h2>
+          <p class="text-gray-600 mb-8">目前已經超過 2026.04.25 截止時間，無法再上傳新作品囉！</p>
+          <button id="btn-deadline-gallery" class="px-8 py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-full font-bold shadow-sm transition-colors">
+            去欣賞大家的日記
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= 視圖：畫廊 ================= -->
+      <div id="view-gallery" class="hidden animate-fade-in">
+        <div id="gallery-empty" class="hidden bg-white rounded-3xl p-12 text-center shadow-sm border border-pink-100 max-w-2xl mx-auto mt-8">
+          <i data-lucide="image" class="mx-auto text-gray-300 mb-4 w-16 h-16"></i>
+          <h3 class="text-xl font-bold text-gray-700 mb-2">目前還沒有作品喔！</h3>
+          <p class="text-gray-500">趕快去「上傳作品」搶頭香吧！</p>
+        </div>
+        <div id="gallery-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- JavaScript 注入畫廊內容 -->
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- JavaScript 邏輯區塊 (Firebase ESM 模組) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // ==========================================
+    // 1. Firebase 初始化
+    // ==========================================
+    // Firebase Config 直接寫入，這樣可以不依賴外部編輯器的環境變數
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBLFK7T2ewIk4qgvlBz9hfQuxEALLUezQ",
+      authDomain: "typing-game-755a8.firebaseapp.com",
+      databaseURL: "https://typing-game-755a8-default-rtdb.firebaseio.com",
+      projectId: "typing-game-755a8",
+      storageBucket: "typing-game-755a8.firebasestorage.app",
+      messagingSenderId: "938096537906",
+      appId: "1:938096537906:web:dbf468a952a3c1a4cb272b",
+      measurementId: "G-656MMR16F2"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    // 如果環境有預設 APP ID 就用，沒有則給個預設值
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'mothers-day-app-default';
+    const COLLECTION_NAME = 'mothersDayEntries';
+
+    // ==========================================
+    // 2. 全域變數與狀態
+    // ==========================================
+    let currentUser = null;
+    let entries = [];
+    let currentView = 'home';
+    let imageFile = null;
+    let isSubmitting = false;
+
+    const DEADLINE = new Date('2026-04-25T23:59:59+08:00');
+    const isPastDeadline = new Date() > DEADLINE;
+
+    // ==========================================
+    // 3. 輔助函數
+    // ==========================================
+    // 初始化 Lucide Icons
+    lucide.createIcons();
+
+    // 日期格式化
+    const formatDate = (timestamp) => {
+      if (!timestamp) return '剛剛';
+      try {
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        if (isNaN(date.getTime())) return '剛剛';
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        const HH = String(date.getHours()).padStart(2, '0');
+        const MM = String(date.getMinutes()).padStart(2, '0');
+        return `${yyyy}.${mm}.${dd} ${HH}:${MM}`;
+      } catch (e) {
+        return '剛剛';
+      }
+    };
+
+    // 避免 XSS 攻擊的 HTML 脫逃
+    const escapeHTML = (str) => {
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, tag => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[tag] || tag));
+    };
+
+    // 提示訊息 (Toast)
+    const showToast = (message, type = 'info') => {
+      const toast = document.getElementById('toast-container');
+      const content = document.getElementById('toast-content');
+      const icon = document.getElementById('toast-icon');
+      const msg = document.getElementById('toast-message');
+
+      msg.textContent = message;
+      
+      // 重置樣式
+      content.className = 'px-6 py-3 rounded-full shadow-lg font-bold text-sm flex items-center transition-all animate-fade-in-down ';
+      
+      if (type === 'error') {
+        content.classList.add('bg-red-500', 'text-white');
+        icon.setAttribute('data-lucide', 'alert-circle');
+      } else if (type === 'warning') {
+        content.classList.add('bg-yellow-400', 'text-yellow-900');
+        icon.setAttribute('data-lucide', 'alert-triangle');
+      } else if (type === 'success') {
+        content.classList.add('bg-green-500', 'text-white');
+        icon.setAttribute('data-lucide', 'heart');
+      } else {
+        content.classList.add('bg-gray-800', 'text-white');
+        icon.setAttribute('data-lucide', 'info');
+      }
+
+      lucide.createIcons();
+      toast.classList.remove('hidden');
+
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    };
+
+    // 圖片壓縮
+    const compressImage = (file) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 600;
+            const MAX_HEIGHT = 600;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+            } else {
+              if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    };
+
+    // 視圖切換
+    const navigateTo = (view) => {
+      currentView = view;
+      document.getElementById('view-home').classList.add('hidden');
+      document.getElementById('view-upload').classList.add('hidden');
+      document.getElementById('view-gallery').classList.add('hidden');
+      
+      document.getElementById(`view-${view}`).classList.remove('hidden');
+      
+      const backBtn = document.getElementById('back-btn');
+      if (view === 'home') backBtn.classList.add('hidden');
+      else backBtn.classList.remove('hidden');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // 綁定導覽按鈕
+    document.getElementById('back-btn').addEventListener('click', () => navigateTo('home'));
+    document.getElementById('btn-go-gallery').addEventListener('click', () => navigateTo('gallery'));
+    document.getElementById('btn-deadline-gallery').addEventListener('click', () => navigateTo('gallery'));
+    document.getElementById('btn-go-upload').addEventListener('click', () => {
+      if (!isPastDeadline) navigateTo('upload');
+    });
+
+    // 處理截止日期 UI 狀態
+    if (isPastDeadline) {
+      const btnHome = document.getElementById('btn-go-upload');
+      btnHome.className = 'flex flex-col items-center justify-center p-6 rounded-2xl transition-transform shadow-md group bg-gray-400 text-white cursor-not-allowed';
+      document.getElementById('upload-icon-home').classList.remove('group-hover:-translate-y-1');
+      document.getElementById('upload-title-home').textContent = '徵稿已截止';
+      document.getElementById('upload-desc-home').textContent = '感謝大家的熱烈參與';
+      document.getElementById('upload-desc-home').className = 'text-gray-200 mt-1';
+      
+      document.getElementById('upload-form-container').classList.add('hidden');
+      document.getElementById('deadline-container').classList.remove('hidden');
+    }
+
+    // ==========================================
+    // 4. 畫面渲染邏輯
+    // ==========================================
+    
+    const renderTopThree = () => {
+      const container = document.getElementById('top-three-container');
+      const grid = document.getElementById('top-three-grid');
+      
+      const topThree = [...entries]
+        .filter(entry => entry.votes > 0)
+        .sort((a, b) => b.votes - a.votes)
+        .slice(0, 3);
+
+      if (topThree.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      grid.innerHTML = '';
+      
+      const medals = ['🥇 冠軍', '🥈 亞軍', '🥉 季軍'];
+      const medalColors = ['text-yellow-500', 'text-gray-400', 'text-amber-600'];
+      const bgColors = ['bg-yellow-50', 'bg-gray-50', 'bg-orange-50'];
+
+      topThree.forEach((entry, index) => {
+        const div = document.createElement('div');
+        div.className = `${bgColors[index]} rounded-2xl p-5 border flex flex-col items-center text-center relative overflow-hidden transition-transform hover:-translate-y-1`;
+        div.innerHTML = `
+          <div class="text-xl font-bold ${medalColors[index]} mb-2">${medals[index]}</div>
+          <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-inner mb-3 text-2xl font-bold text-gray-700">
+            ${escapeHTML(entry.author).charAt(0)}
+          </div>
+          <h4 class="font-bold text-lg text-gray-800 mb-0.5">${escapeHTML(entry.author)}</h4>
+          <span class="text-xs text-gray-400 mb-2">${formatDate(entry.createdAt)}</span>
+          <p class="text-sm text-gray-600 mb-3 line-clamp-2 h-10">${escapeHTML(entry.content)}</p>
+          <div class="mt-auto inline-flex items-center bg-white px-3 py-1.5 rounded-full text-pink-500 font-semibold text-sm shadow-sm">
+            <i data-lucide="heart" class="mr-1 text-red-500 fill-current w-3.5 h-3.5"></i>
+            ${entry.votes} 票
+          </div>
+        `;
+        grid.appendChild(div);
+      });
+      lucide.createIcons();
+    };
+
+    // 全域提供投票功能
+    window.handleVote = async (entryId) => {
+      if (!currentUser) return;
+      
+      const votedItems = JSON.parse(localStorage.getItem('votedMothersDayEntries') || '[]');
+      if (votedItems.includes(entryId)) {
+        showToast("你已經投過這個作品囉！", "warning");
+        return;
+      }
+
+      try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, entryId);
+        await updateDoc(docRef, { votes: increment(1) });
+        
+        votedItems.push(entryId);
+        localStorage.setItem('votedMothersDayEntries', JSON.stringify(votedItems));
+        showToast("投票成功！謝謝你的參與 ❤️", "success");
+      } catch (error) {
+        console.error("Error voting:", error);
+        showToast("投票失敗，請再試一次。", "error");
+      }
+    };
+
+    const renderGallery = () => {
+      const emptyState = document.getElementById('gallery-empty');
+      const grid = document.getElementById('gallery-grid');
+      const votedIds = JSON.parse(localStorage.getItem('votedMothersDayEntries') || '[]');
+
+      if (entries.length === 0) {
+        emptyState.classList.remove('hidden');
+        grid.classList.add('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      grid.classList.remove('hidden');
+      grid.innerHTML = '';
+
+      entries.forEach(entry => {
+        const hasVoted = votedIds.includes(entry.id);
+        const div = document.createElement('div');
+        div.className = "bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col";
+        
+        let imageHtml = '';
+        if (entry.imageUrl) {
+          imageHtml = `
+            <div class="h-56 bg-gray-50 border-b border-gray-100 relative group">
+              <img src="${entry.imageUrl}" alt="作品圖片" class="w-full h-full object-contain mix-blend-multiply" onerror="this.style.display='none'" />
+            </div>
+          `;
+        } else {
+          imageHtml = `
+            <div class="h-16 bg-gradient-to-r from-pink-50 to-rose-50 border-b border-gray-100 flex items-center px-4">
+               <span class="text-2xl opacity-50">📝</span>
+            </div>
+          `;
+        }
+
+        const voteBtnClass = hasVoted 
+          ? 'bg-pink-500 text-white shadow-md' 
+          : 'bg-pink-50 text-pink-600 hover:bg-pink-100 hover:scale-105 active:scale-95';
+        
+        const voteIconClass = hasVoted ? 'fill-current' : '';
+
+        div.innerHTML = `
+          ${imageHtml}
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-gray-800 text-lg leading-relaxed mb-6 flex-1 whitespace-pre-wrap">「${escapeHTML(entry.content)}」</p>
+            <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+              <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-lg mr-3 shadow-sm border border-white">
+                  ${escapeHTML(entry.author).charAt(0)}
+                </div>
+                <div class="flex flex-col">
+                  <span class="font-semibold text-gray-700 leading-tight">${escapeHTML(entry.author)}</span>
+                  <span class="text-xs text-gray-400 mt-0.5">${formatDate(entry.createdAt)}</span>
+                </div>
+              </div>
+              <button onclick="handleVote('${entry.id}')" class="flex items-center px-4 py-2 rounded-full font-medium transition-all ${voteBtnClass}">
+                <i data-lucide="heart" class="mr-1.5 w-[18px] h-[18px] ${voteIconClass}"></i>
+                <span>${entry.votes} 票</span>
+              </button>
+            </div>
+          </div>
+        `;
+        grid.appendChild(div);
+      });
+      lucide.createIcons();
+    };
+
+    // ==========================================
+    // 5. 表單驗證與上傳邏輯
+    // ==========================================
+    const authorInput = document.getElementById('input-author');
+    const contentInput = document.getElementById('input-content');
+    const imageInput = document.getElementById('input-image');
+    const submitBtn = document.getElementById('btn-submit');
+    const wordCountBadge = document.getElementById('word-count-badge');
+    const errorMsgBox = document.getElementById('upload-error');
+    const errorMsgText = document.getElementById('upload-error-text');
+
+    const validateForm = () => {
+      const content = contentInput.value;
+      const author = authorInput.value;
+      const wordCount = content.replace(/\s+/g, '').length;
+      const isContentValid = wordCount >= 30 && wordCount <= 50;
+
+      // 更新字數標籤
+      wordCountBadge.textContent = `${wordCount} / 50 字 (需介於30-50字)`;
+      wordCountBadge.className = `text-sm font-medium px-2.5 py-1 rounded-full transition-colors ${
+        wordCount === 0 ? 'text-gray-500 bg-gray-100' :
+        isContentValid ? 'text-green-700 bg-green-100' : 'text-red-600 bg-red-100'
+      }`;
+
+      // 更新輸入框樣式
+      if (wordCount > 0 && !isContentValid) {
+        contentInput.classList.add('border-red-300', 'focus:border-red-400', 'focus:ring-red-200');
+        contentInput.classList.remove('border-gray-200', 'focus:border-pink-400', 'focus:ring-pink-200');
+      } else {
+        contentInput.classList.remove('border-red-300', 'focus:border-red-400', 'focus:ring-red-200');
+        contentInput.classList.add('border-gray-200', 'focus:border-pink-400', 'focus:ring-pink-200');
+      }
+
+      // 更新按鈕狀態
+      if (!isSubmitting && isContentValid && author.trim() !== '') {
+        submitBtn.disabled = false;
+      } else {
+        submitBtn.disabled = true;
+      }
+
+      return { isContentValid, wordCount };
+    };
+
+    authorInput.addEventListener('input', validateForm);
+    contentInput.addEventListener('input', validateForm);
+
+    // 處理圖片預覽
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      const preview = document.getElementById('image-preview');
+      const placeholder = document.getElementById('image-placeholder');
+      const removeBtn = document.getElementById('remove-image-btn');
+
+      if (file) {
+        if (!file.type.startsWith('image/')) {
+          errorMsgText.textContent = '請上傳圖片檔案！';
+          errorMsgBox.classList.remove('hidden');
+          errorMsgBox.classList.add('flex');
+          return;
+        }
+        imageFile = file;
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          preview.src = reader.result;
+          preview.classList.remove('hidden');
+          placeholder.classList.add('hidden');
+          removeBtn.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // 移除圖片
+    document.getElementById('remove-image-btn').addEventListener('click', () => {
+      imageFile = null;
+      imageInput.value = '';
+      document.getElementById('image-preview').src = '';
+      document.getElementById('image-preview').classList.add('hidden');
+      document.getElementById('image-placeholder').classList.remove('hidden');
+      document.getElementById('remove-image-btn').classList.add('hidden');
+    });
+
+    // 提交表單
+    document.getElementById('upload-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsgBox.classList.add('hidden');
+
+      const author = authorInput.value.trim();
+      const content = contentInput.value.trim();
+      const { isContentValid, wordCount } = validateForm();
+
+      if (!author) {
+        errorMsgText.textContent = '請輸入你的名字喔！';
+        errorMsgBox.classList.remove('hidden'); errorMsgBox.classList.add('flex');
+        return;
+      }
+      if (!isContentValid) {
+        errorMsgText.textContent = `字數必須在 30 到 50 字之間喔！目前 ${wordCount} 字。`;
+        errorMsgBox.classList.remove('hidden'); errorMsgBox.classList.add('flex');
+        return;
+      }
+
+      isSubmitting = true;
+      validateForm(); // 鎖定按鈕
+      document.getElementById('submit-text').textContent = '上傳中...';
+
+      try {
+        let finalImageUrl = null;
+        if (imageFile) {
+          finalImageUrl = await compressImage(imageFile);
+        }
+
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME), {
+          author: author,
+          content: content,
+          imageUrl: finalImageUrl,
+          votes: 0,
+          userId: currentUser.uid,
+          createdAt: serverTimestamp()
+        });
+
+        // 重置表單
+        authorInput.value = '';
+        contentInput.value = '';
+        document.getElementById('remove-image-btn').click();
+        
+        isSubmitting = false;
+        validateForm();
+        document.getElementById('submit-text').textContent = '繳交日記';
+        
+        showToast("發布成功！快去看看你的作品吧！", "success");
+        navigateTo('gallery');
+
+      } catch (error) {
+        console.error("Error submitting entry:", error);
+        errorMsgText.textContent = '上傳失敗，請再試一次。';
+        errorMsgBox.classList.remove('hidden'); errorMsgBox.classList.add('flex');
+        isSubmitting = false;
+        validateForm();
+        document.getElementById('submit-text').textContent = '繳交日記';
+      }
+    });
+
+    // ==========================================
+    // 6. 啟動 Firebase Auth 與資料監聽
+    // ==========================================
+    const initApp = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          try {
+            // 嘗試使用環境提供的 token 登入
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } catch (tokenError) {
+            console.warn("自訂 Token 登入失敗 (若您使用了自己的 Firebase Config 這是正常現象)，自動降級為匿名登入:", tokenError);
+            // 當使用自訂的 firebaseConfig 時，環境提供的 token 會不匹配，此時回退使用匿名登入
+            await signInAnonymously(auth);
+          }
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error("Authentication failed:", error);
+      }
+    };
+    initApp();
+
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user;
+      
+      if (user) {
+        // 隱藏 Loading，顯示主畫面
+        document.getElementById('loading-screen').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+
+        // 開始監聽資料
+        const entriesRef = collection(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME);
+        onSnapshot(entriesRef, (snapshot) => {
+          entries = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          
+          // 排序：新到舊
+          entries.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+          
+          // 更新 UI
+          renderTopThree();
+          if (currentView === 'gallery') {
+            renderGallery();
+          }
+        }, (error) => {
+          console.error("Error fetching entries:", error);
+          showToast("讀取資料失敗，請重新整理頁面", "error");
+        });
+      }
+    });
+
+  </script>
+</body>
+</html>
