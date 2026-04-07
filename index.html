@@ -349,6 +349,14 @@
       if (view === 'home') backBtn.classList.add('hidden');
       else backBtn.classList.remove('hidden');
 
+      // 【修復】當從首頁點擊進入畫廊時，主動把已抓到的資料渲染出來
+      if (view === 'gallery') {
+        // 使用 setTimeout 確保在所有的函數宣告完成後才執行 (避免順序產生的錯誤)
+        setTimeout(() => {
+          if (typeof renderGallery === 'function') renderGallery();
+        }, 0);
+      }
+
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
