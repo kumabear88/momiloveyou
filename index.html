@@ -96,7 +96,7 @@
           <p class="text-lg text-gray-600 mb-8 max-w-xl mx-auto leading-relaxed relative z-10">
             平常媽媽都在做些什麼呢？是辛苦做家事、開心追劇，還是生氣碎碎念？
             <br/>快用 30~50 字寫下你的觀察，也可以附上照片或四格漫畫喔！
-            <br/><span class="text-red-500 font-bold inline-block mt-3 bg-red-50 px-4 py-1.5 rounded-full text-sm">⏳ 徵稿日期至 2026.04.26 截止</span>
+            <br/><span class="text-red-500 font-bold inline-block mt-3 bg-red-50 px-4 py-1.5 rounded-full text-sm">⏳ 徵稿日期至 2026.04.25 截止</span>
           </p>
           
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto relative z-10">
@@ -169,7 +169,6 @@
                     <p class="text-xs text-gray-400">支援照片、圖畫或四格漫畫</p>
                   </div>
                   <img id="image-preview" src="" alt="Preview" class="hidden w-full h-full object-contain p-2" />
-                  <!-- 針對手機版優化 accept 屬性，確保能正確喚起相簿與相機 -->
                   <input id="input-image" type="file" accept="image/jpeg, image/png, image/gif, image/*" class="hidden" />
                 </label>
               </div>
@@ -199,11 +198,19 @@
 
       <!-- ================= 視圖：畫廊 ================= -->
       <div id="view-gallery" class="hidden animate-fade-in">
-        <!-- 投票溫馨提醒 -->
-        <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-6 flex items-start sm:items-center shadow-sm max-w-2xl mx-auto">
+        <!-- 投票溫馨提醒 (開放投票時顯示) -->
+        <div id="gallery-voting-alert" class="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-6 flex items-start sm:items-center shadow-sm max-w-2xl mx-auto">
           <i data-lucide="info" class="text-blue-500 mr-3 w-6 h-6 flex-shrink-0 mt-0.5 sm:mt-0"></i>
           <p class="text-blue-800 font-medium text-sm sm:text-base leading-relaxed">
             溫馨提醒：每人每台裝置針對每件作品 <span class="font-bold text-red-500">只能投票一次</span>，不可以重複投票喔！快來為喜歡的作品送上愛心吧 ❤️
+          </p>
+        </div>
+
+        <!-- 投票結束橫幅 (停止投票時顯示) -->
+        <div id="gallery-voting-ended-alert" class="hidden bg-yellow-50 border border-yellow-300 rounded-2xl p-4 mb-6 flex items-start sm:items-center shadow-md max-w-2xl mx-auto">
+          <i data-lucide="award" class="text-yellow-600 mr-3 w-6 h-6 flex-shrink-0 mt-0.5 sm:mt-0"></i>
+          <p class="text-yellow-800 font-bold text-sm sm:text-base leading-relaxed">
+            🏆 投票活動已結束，名次已結算！感謝大家的熱情參與。
           </p>
         </div>
 
@@ -230,12 +237,27 @@
       <!-- ================= 視圖：管理員後台 ================= -->
       <div id="view-admin-dashboard" class="hidden animate-fade-in max-w-3xl mx-auto">
         <div class="bg-white p-6 rounded-3xl shadow-sm border border-red-100">
+          
+          <!-- 投票狀態控制面板 -->
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 p-5 rounded-2xl mb-6 border border-gray-200">
+            <div class="mb-3 sm:mb-0">
+              <h3 class="font-bold text-gray-800 text-lg flex items-center">
+                <i data-lucide="bar-chart-2" class="mr-2 text-blue-500 w-5 h-5"></i> 投票狀態控制
+              </h3>
+              <p class="text-sm text-gray-500 mt-1" id="admin-voting-status-text">目前狀態：開放投票中</p>
+            </div>
+            <button id="btn-toggle-voting" class="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold transition-colors shadow-sm flex items-center">
+              <i data-lucide="power" class="w-4 h-4 mr-2"></i> <span id="admin-toggle-btn-text">停止投票並結算</span>
+            </button>
+          </div>
+
           <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
             <h2 class="text-2xl font-bold text-gray-800 flex items-center">
               <i data-lucide="settings" class="mr-2 text-gray-500"></i> 後台管理：作品列表
             </h2>
             <span class="bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-sm font-bold" id="admin-total-count">共 0 篇</span>
           </div>
+          
           <div id="admin-list" class="space-y-3">
             <!-- JavaScript 注入後台列表 -->
           </div>
@@ -254,12 +276,11 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, serverTimestamp, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, serverTimestamp, increment, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // ==========================================
     // 1. Firebase 初始化
     // ==========================================
-    // Firebase Config 直接寫入，這樣可以不依賴外部編輯器的環境變數
     const firebaseConfig = {
       apiKey: "AIzaSyDBLFK7T2ewIk4qgvlBz9hfQuxEALLUezQ",
       authDomain: "typing-game-755a8.firebaseapp.com",
@@ -275,7 +296,6 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
     
-    // 如果環境有預設 APP ID 就用，沒有則給個預設值
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'mothers-day-app-default';
     const COLLECTION_NAME = 'mothersDayEntries';
 
@@ -287,8 +307,9 @@
     let currentView = 'home';
     let imageFile = null;
     let isSubmitting = false;
-    let isAdmin = false; // 管理員狀態
-    let entryToDelete = null; // 待刪除的作品 ID
+    let isAdmin = false; 
+    let entryToDelete = null; 
+    let isVotingActive = true; // 新增：控制全站投票狀態
 
     const DEADLINE = new Date('2026-04-25T23:59:59+08:00');
     const isPastDeadline = new Date() > DEADLINE;
@@ -296,10 +317,8 @@
     // ==========================================
     // 3. 輔助函數
     // ==========================================
-    // 初始化 Lucide Icons
     lucide.createIcons();
 
-    // 日期格式化
     const formatDate = (timestamp) => {
       if (!timestamp) return '剛剛';
       try {
@@ -316,7 +335,6 @@
       }
     };
 
-    // 避免 XSS 攻擊的 HTML 脫逃
     const escapeHTML = (str) => {
       if (!str) return '';
       return str.replace(/[&<>'"]/g, tag => ({
@@ -324,7 +342,6 @@
         }[tag] || tag));
     };
 
-    // 提示訊息 (Toast)
     const showToast = (message, type = 'info') => {
       const toast = document.getElementById('toast-container');
       const content = document.getElementById('toast-content');
@@ -332,8 +349,6 @@
       const msg = document.getElementById('toast-message');
 
       msg.textContent = message;
-      
-      // 重置樣式
       content.className = 'px-6 py-3 rounded-full shadow-lg font-bold text-sm flex items-center transition-all animate-fade-in-down ';
       
       if (type === 'error') {
@@ -358,7 +373,6 @@
       }, 3000);
     };
 
-    // 圖片壓縮
     const compressImage = (file) => {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -403,7 +417,6 @@
       if (view === 'home') backBtn.classList.add('hidden');
       else backBtn.classList.remove('hidden');
 
-      // 【修復】當從首頁點擊進入畫廊時，主動把已抓到的資料渲染出來
       if (view === 'gallery') {
         setTimeout(() => { if (typeof renderGallery === 'function') renderGallery(); }, 0);
       }
@@ -414,7 +427,6 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // 綁定導覽按鈕
     document.getElementById('back-btn').addEventListener('click', () => navigateTo('home'));
     document.getElementById('btn-go-gallery').addEventListener('click', () => navigateTo('gallery'));
     document.getElementById('btn-deadline-gallery').addEventListener('click', () => navigateTo('gallery'));
@@ -440,7 +452,18 @@
       }
     });
 
-    // 處理截止日期 UI 狀態
+    // 管理員停止投票邏輯
+    document.getElementById('btn-toggle-voting').addEventListener('click', async () => {
+      const newState = !isVotingActive;
+      try {
+        // 修復：確保路徑具有偶數個區段 (Collection -> Document -> Collection -> Document)
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'status'), { votingActive: newState }, { merge: true });
+        showToast(newState ? "✅ 已重新開放投票" : "🛑 已停止投票並結算", "success");
+      } catch (error) {
+        showToast("設定失敗：" + error.message, "error");
+      }
+    });
+
     if (isPastDeadline) {
       const btnHome = document.getElementById('btn-go-upload');
       btnHome.className = 'flex flex-col items-center justify-center p-6 rounded-2xl transition-transform shadow-md group bg-gray-400 text-white cursor-not-allowed';
@@ -499,10 +522,15 @@
       lucide.createIcons();
     };
 
-    // 全域提供投票功能
     window.handleVote = async (entryId) => {
       if (!currentUser) return;
       
+      // 防護：如果投票已關閉，阻擋投票
+      if (!isVotingActive) {
+        showToast("投票已經截止囉！", "warning");
+        return;
+      }
+
       const votedItems = JSON.parse(localStorage.getItem('votedMothersDayEntries') || '[]');
       if (votedItems.includes(entryId)) {
         showToast("你已經投過這個作品囉！", "warning");
@@ -557,11 +585,16 @@
           `;
         }
 
-        const voteBtnClass = hasVoted 
-          ? 'bg-pink-500 text-white shadow-md' 
-          : 'bg-pink-50 text-pink-600 hover:bg-pink-100 hover:scale-105 active:scale-95';
+        // 動態根據狀態改變按鈕樣式
+        const voteBtnClass = !isVotingActive 
+          ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
+          : hasVoted 
+            ? 'bg-pink-500 text-white shadow-md' 
+            : 'bg-pink-50 text-pink-600 hover:bg-pink-100 hover:scale-105 active:scale-95';
         
-        const voteIconClass = hasVoted ? 'fill-current' : '';
+        const voteIconClass = (hasVoted && isVotingActive) ? 'fill-current' : '';
+        const voteText = !isVotingActive ? `已結算：${entry.votes} 票` : `${entry.votes} 票`;
+        const clickEvent = isVotingActive ? `onclick="handleVote('${entry.id}')"` : '';
 
         div.innerHTML = `
           ${imageHtml}
@@ -577,9 +610,9 @@
                   <span class="text-xs text-gray-400 mt-0.5">${formatDate(entry.createdAt)}</span>
                 </div>
               </div>
-              <button onclick="handleVote('${entry.id}')" class="flex items-center px-4 py-2 rounded-full font-medium transition-all ${voteBtnClass}">
+              <button ${clickEvent} class="flex items-center px-4 py-2 rounded-full font-medium transition-all ${voteBtnClass}">
                 <i data-lucide="heart" class="mr-1.5 w-[18px] h-[18px] ${voteIconClass}"></i>
-                <span>${entry.votes} 票</span>
+                <span>${voteText}</span>
               </button>
             </div>
           </div>
@@ -630,24 +663,20 @@
       lucide.createIcons();
     };
 
-    // 觸發自訂刪除確認視窗
     window.promptDelete = (id) => {
       entryToDelete = id;
       document.getElementById('confirm-modal').classList.remove('hidden');
     };
 
-    // 取消刪除
     document.getElementById('btn-cancel-delete').addEventListener('click', () => {
       entryToDelete = null;
       document.getElementById('confirm-modal').classList.add('hidden');
     });
 
-    // 確認刪除
     document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
       if (!entryToDelete) return;
       const id = entryToDelete;
       
-      // 關閉視窗並重置變數
       document.getElementById('confirm-modal').classList.add('hidden');
       entryToDelete = null;
 
@@ -677,14 +706,12 @@
       const wordCount = content.replace(/\s+/g, '').length;
       const isContentValid = wordCount >= 30 && wordCount <= 50;
 
-      // 更新字數標籤
       wordCountBadge.textContent = `${wordCount} / 50 字 (需介於30-50字)`;
       wordCountBadge.className = `text-sm font-medium px-2.5 py-1 rounded-full transition-colors ${
         wordCount === 0 ? 'text-gray-500 bg-gray-100' :
         isContentValid ? 'text-green-700 bg-green-100' : 'text-red-600 bg-red-100'
       }`;
 
-      // 更新輸入框樣式
       if (wordCount > 0 && !isContentValid) {
         contentInput.classList.add('border-red-300', 'focus:border-red-400', 'focus:ring-red-200');
         contentInput.classList.remove('border-gray-200', 'focus:border-pink-400', 'focus:ring-pink-200');
@@ -693,7 +720,6 @@
         contentInput.classList.add('border-gray-200', 'focus:border-pink-400', 'focus:ring-pink-200');
       }
 
-      // 更新按鈕狀態
       if (!isSubmitting && isContentValid && author.trim() !== '') {
         submitBtn.disabled = false;
       } else {
@@ -706,7 +732,6 @@
     authorInput.addEventListener('input', validateForm);
     contentInput.addEventListener('input', validateForm);
 
-    // 處理圖片預覽
     imageInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       const preview = document.getElementById('image-preview');
@@ -732,7 +757,6 @@
       }
     });
 
-    // 移除圖片
     document.getElementById('remove-image-btn').addEventListener('click', () => {
       imageFile = null;
       imageInput.value = '';
@@ -742,7 +766,6 @@
       document.getElementById('remove-image-btn').classList.add('hidden');
     });
 
-    // 提交表單
     document.getElementById('upload-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       errorMsgBox.classList.add('hidden');
@@ -763,7 +786,7 @@
       }
 
       isSubmitting = true;
-      validateForm(); // 鎖定按鈕
+      validateForm(); 
       document.getElementById('submit-text').textContent = '上傳中...';
 
       try {
@@ -781,7 +804,6 @@
           createdAt: serverTimestamp()
         });
 
-        // 重置表單
         authorInput.value = '';
         contentInput.value = '';
         document.getElementById('remove-image-btn').click();
@@ -795,7 +817,6 @@
 
       } catch (error) {
         console.error("Error submitting entry:", error);
-        // 將真正的錯誤訊息顯示在畫面上，方便手機版除錯
         errorMsgText.textContent = `上傳失敗：${error.message || '未知錯誤'}`;
         errorMsgBox.classList.remove('hidden'); errorMsgBox.classList.add('flex');
         isSubmitting = false;
@@ -805,17 +826,15 @@
     });
 
     // ==========================================
-    // 6. 啟動 Firebase Auth 與資料監聽
+    // 7. 啟動 Firebase Auth 與資料監聽
     // ==========================================
     const initApp = async () => {
       try {
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
           try {
-            // 嘗試使用環境提供的 token 登入
             await signInWithCustomToken(auth, __initial_auth_token);
           } catch (tokenError) {
-            console.warn("自訂 Token 登入失敗 (若您使用了自己的 Firebase Config 這是正常現象)，自動降級為匿名登入:", tokenError);
-            // 當使用自訂的 firebaseConfig 時，環境提供的 token 會不匹配，此時回退使用匿名登入
+            console.warn("自訂 Token 登入失敗，自動降級為匿名登入:", tokenError);
             await signInAnonymously(auth);
           }
         } else {
@@ -831,11 +850,49 @@
       currentUser = user;
       
       if (user) {
-        // 隱藏 Loading，顯示主畫面
         document.getElementById('loading-screen').classList.add('hidden');
         document.getElementById('app-container').classList.remove('hidden');
 
-        // 開始監聽資料
+        // [新增] 監聽系統投票設定 (是否開放投票)
+        // 修復：確保路徑具有偶數個區段 (Collection -> Document -> Collection -> Document)
+        const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'status');
+        onSnapshot(configRef, (docSnap) => {
+          if (docSnap.exists()) {
+            isVotingActive = docSnap.data().votingActive !== false;
+          } else {
+            isVotingActive = true;
+          }
+
+          // 更新畫廊的橫幅提示
+          const activeAlert = document.getElementById('gallery-voting-alert');
+          const endedAlert = document.getElementById('gallery-voting-ended-alert');
+          if (isVotingActive) {
+            activeAlert.classList.remove('hidden');
+            endedAlert.classList.add('hidden');
+          } else {
+            activeAlert.classList.add('hidden');
+            endedAlert.classList.remove('hidden');
+          }
+
+          // 更新後台的管理按鈕文字與顏色
+          const statusText = document.getElementById('admin-voting-status-text');
+          const toggleBtn = document.getElementById('btn-toggle-voting');
+          const toggleBtnText = document.getElementById('admin-toggle-btn-text');
+          if (isVotingActive) {
+            statusText.innerHTML = '目前狀態：<span class="text-green-600 font-bold">✅ 開放投票中</span>';
+            toggleBtn.className = 'px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold transition-colors shadow-sm flex items-center';
+            toggleBtnText.textContent = '停止投票並結算';
+          } else {
+            statusText.innerHTML = '目前狀態：<span class="text-red-500 font-bold">🛑 投票已截止並結算</span>';
+            toggleBtn.className = 'px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold transition-colors shadow-sm flex items-center';
+            toggleBtnText.textContent = '重新開放投票';
+          }
+
+          // 重新繪製目前的畫面以套用新狀態
+          if (currentView === 'gallery') renderGallery();
+        });
+
+        // 監聽所有作品資料
         const entriesRef = collection(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME);
         onSnapshot(entriesRef, (snapshot) => {
           entries = snapshot.docs.map(doc => ({
@@ -843,20 +900,13 @@
             ...doc.data()
           }));
           
-          // 排序：新到舊
           entries.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
           
-          // 更新 UI
           renderTopThree();
-          if (currentView === 'gallery') {
-            renderGallery();
-          }
-          if (currentView === 'admin-dashboard') {
-            renderAdminDashboard();
-          }
+          if (currentView === 'gallery') renderGallery();
+          if (currentView === 'admin-dashboard') renderAdminDashboard();
         }, (error) => {
           console.error("Error fetching entries:", error);
-          // 在畫面上顯示真正的讀取錯誤原因
           showToast(`讀取失敗：${error.message}`, "error");
         });
       }
